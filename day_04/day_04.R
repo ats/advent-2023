@@ -57,3 +57,33 @@ wins |>
   ungroup() |>
   summarise(total=sum(score))
 
+# part 2
+length(data$card_num |> unique()) # 206 cards
+cards_list <- tibble(card = c(1:206))
+
+deck <- cards_list |> left_join(wins, join_by(card == card_num))
+deck$matches <- coalesce(deck$matches, 0)
+deck$score <- coalesce(deck$score,0)
+deck$counter <- 1
+
+# for i in 1:206
+# (do this for each card)
+card_counter <- 1
+deck_loop <- 1
+card <- 1
+upper <- deck[card,]$matches # --> this is the value that I need to carry forward
+upper
+
+for (deck_loop in 1:206) {
+  card <- deck_loop 
+  upper <- deck[card,]$matches 
+    for (card_counter in card:upper) {
+      print(card_counter)
+      deck[card+card_counter,]$counter <- deck[card+card_counter,]$matches + upper - (card_counter-1)
+    }
+}
+deck
+
+sum(deck$counter, na.rm=TRUE)
+
+
