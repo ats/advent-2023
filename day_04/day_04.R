@@ -51,7 +51,7 @@ elf_doubler <- function(matches=NULL) {
 
 wins <- wins |> count(card_num, name="matches") |> arrange(card_num) |>
   rowwise() |>
-  mutate(score = elf_doubler(matches)) 
+  mutate(score = elf_doubler(matches))
 
 wins |>
   ungroup() |>
@@ -66,24 +66,18 @@ deck$matches <- coalesce(deck$matches, 0)
 deck$score <- coalesce(deck$score,0)
 deck$counter <- 1
 
-# for i in 1:206
-# (do this for each card)
-card_counter <- 1
-deck_loop <- 1
-card <- 1
-upper <- deck[card,]$matches # --> this is the value that I need to carry forward
-upper
+for (card in 1:nrow(deck)) {
+  upper <- deck[card,]$matches # --> this is the value that I need to carry forward
+  upper # upper is the number of additional cards whose counters should be incremented
 
-for (deck_loop in 1:206) {
-  card <- deck_loop 
-  upper <- deck[card,]$matches 
-    for (card_counter in card:upper) {
-      print(card_counter)
-      deck[card+card_counter,]$counter <- deck[card+card_counter,]$matches + upper - (card_counter-1)
+  for (card_count in (card+1):(card+upper)) {
+    if (upper > 0) {
+      deck[card_count,]$counter <- deck[card_count,]$counter +
+                                 deck[card,]$counter
     }
+  }
 }
-deck
+sum(deck$counter)
 
-sum(deck$counter, na.rm=TRUE)
 
 
