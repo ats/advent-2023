@@ -31,8 +31,8 @@ library(dplyr)
 library(stringr)
 
 test_data <- tibble(
-  c("32T3K",  "T55J5", "KK677" , "KTJJT" , "QQQJA"),
-  c(765, 684, 28, 220, 483)
+  c("32T3K",  "T55J5", "KK677" , "KTJJT" , "QQQJA", "QQQQ2", "33333", "23456"),
+  c(765, 684, 28, 220, 483, 2, 2, 2)
 ) 
 names(test_data) <- c("hand", "bid")
 
@@ -78,9 +78,22 @@ atomic_hands |> mutate(type = case_when(
   mutate(type = case_when(
     "Three of a kind" %in% type & "Pair" %in% type ~ "Full house",
     "Three of a kind" %in% type ~ "Three of a kind",
-    # "Pair" %in% type & n==2 ~ "Two pair",
-    # "Pair" %in% type ~ "Pair",
-    # is.na(type) ~ "Single"
-  ))
-  
+    type == "Pair" ~ "Pair",
+    .default = type
+  )) |>
+  group_by(hand) |> count(type) |>
+  mutate(type = case_when(
+    type == "Pair" & n == 2 ~ "Two pair",
+    # is.na(type) ~ "High card",
+    .default = type
+  )) |> filter(!is.na(type)) -> ranked_hands
+
+
+test_data <- test_data |> mutate(id = row_number()) |> left_join(ranked_hands, join_by(id==hand))
+test_data
+
+hand_order <- c("Five of a kind", "Four of a kind", "Full house", "Three of a kind", 
+                "Two pair", "Pair")
+
+
 
