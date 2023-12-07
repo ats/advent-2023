@@ -31,8 +31,8 @@ library(dplyr)
 library(stringr)
 
 test_data <- tibble(
-  c("32T3K",  "T55J5", "KK677" , "KTJJT" , "QQQJA", "QQQQ2", "33333", "23456"),
-  c(765, 684, 28, 220, 483, 2, 2, 2)
+  c("32T3K",  "T55J5", "KK677" , "KTJJT" , "QQQJA"),
+  c(765, 684, 28, 220, 483)
 ) 
 names(test_data) <- c("hand", "bid")
 
@@ -69,21 +69,21 @@ atomic_hands <- str_extract_all(test_data$hand, "[2-9AKQJT*]", simplify = TRUE) 
   group_by(hand) |> count(value)
 
 atomic_hands |> mutate(type = case_when(
-  5 %in% n ~ "Five of a kind",
-  (4 %in% n) ~ "Four of a kind",
-  (2 %in% n & 3 %in% n) ~ "Full house",
-  3 %in% n & 1 %in% n ~ "Three of a kind",
+  5 %in% n ~ "7. Five of a kind",
+  (4 %in% n) ~ "6. Four of a kind",
+  (2 %in% n & 3 %in% n) ~ "5. Full house",
+  3 %in% n & 1 %in% n ~ "4. Three of a kind",
   n == 2 ~ "Pair"
 )) |> 
   mutate(type = case_when(
     "Three of a kind" %in% type & "Pair" %in% type ~ "Full house",
     "Three of a kind" %in% type ~ "Three of a kind",
-    type == "Pair" ~ "Pair",
+    type == "Pair" ~ "2. Pair",
     .default = type
   )) |>
   group_by(hand) |> count(type) |>
   mutate(type = case_when(
-    type == "Pair" & n == 2 ~ "Two pair",
+    type == "Pair" & n == 2 ~ "3. Two pair",
     # is.na(type) ~ "High card",
     .default = type
   )) |> filter(!is.na(type)) -> ranked_hands
@@ -92,8 +92,25 @@ atomic_hands |> mutate(type = case_when(
 test_data <- test_data |> mutate(id = row_number()) |> left_join(ranked_hands, join_by(id==hand))
 test_data
 
-hand_order <- c("Five of a kind", "Four of a kind", "Full house", "Three of a kind", 
-                "Two pair", "Pair")
-
-
-
+#hand_order <- c("Five of a kind", "Four of a kind", "Full house", "Three of a kind", 
+                "Two pair", "Pair", "Single")
+test_data$type <- coalesce(test_data$type, "1. Single")
+#test_data$type <- levels("Five of a kind", "Four of a kind", "Full house", "Three of a kind", 
+ #                        "Two pair", "Pair", "Single")
+test_data$hand <- str_replace_all(test_data$hand, c("K" = "B", "Q" = "C", "J" = "D", "T" = "E", "9" = "F",
+                                  "8" = "G", "7" = "H", "6" = "I", "5" = "J", "4" = "K",
+                                  "3" = "L", "2" = "M"))
+test_data |> arrange(type, desc(hand)) |> mutate(winnings = row_number()*bid)
+#
+# So, the first step is to put the hands in order of strength:
+#
+# 32T3K is the only one pair and the other hands are all a stronger type, so it
+# gets rank 1. KK677 and KTJJT are both two pair. Their first cards both have
+# the same label, but the second card of KK677 is stronger (K vs T), so KTJJT
+# gets rank 2 and KK677 gets rank 3. T55J5 and QQQJA are both three of a kind.
+# QQQJA has a stronger first card, so it gets rank 5 and T55J5 gets rank 4. Now,
+# you can determine the total winnings of this set of hands by adding up the
+# result of multiplying each hand's bid with its rank (765 * 1 + 220 * 2 + 28 *
+# 3 + 684 * 4 + 483 * 5). So the total winnings in this example are 6440.
+#
+# 
