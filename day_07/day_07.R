@@ -32,8 +32,8 @@ library(stringr)
 
 test_data <- read.csv(file="day_07/input.txt", sep=" ", header = FALSE)
 test_data <- tibble(
-  c("32T3K",  "T55J5", "KK677" , "KTJJT" , "QQQJA", "44KKJ"),
-  c(765, 684, 28, 220, 483, 47)
+  c("32T3K",  "T55J5", "KK677" , "KTJJT" , "QQQJA"),
+  c(765, 684, 28, 220, 483)
 )
 names(test_data) <- c("hand", "bid")
 
@@ -94,7 +94,7 @@ test_data <- test_data |> mutate(id = row_number()) |> left_join(ranked_hands, j
 test_data
 
 #hand_order <- c("Five of a kind", "Four of a kind", "Full house", "Three of a kind",
-                "Two pair", "Pair", "Single")
+#                "Two pair", "Pair", "Single")
 test_data$type <- coalesce(test_data$type, "1. Single")
 #test_data$type <- levels("Five of a kind", "Four of a kind", "Full house", "Three of a kind",
  #                        "Two pair", "Pair", "Single")
@@ -150,13 +150,13 @@ joker |> group_by(type, jokers_count) |> count()
 # adjust hand types based on current type and joker count
 joker |> mutate(new_type = case_when(
   type=="1. Single" & jokers_count == 1 ~ "2. Pair",
-  type=="1. Single" & jokers_count == 2 ~ "4. Three of a kind", # this shouldn't exist?
+  # type=="1. Single" & jokers_count == 2 ~ "4. Three of a kind", # this shouldn't exist?
   type=="2. Pair" & jokers_count == 1 ~ "4. Three of a kind",
   type=="2. Pair" & jokers_count == 2 ~ "4. Three of a kind",
   type=="3. Two pair" & jokers_count == 1 ~ "5. Full house",
   type=="3. Two pair" & jokers_count == 2 ~ "6. Four of a kind",
   type=="5. Full house" & jokers_count == 2 ~ "7. Five of a kind",
-  type=="5. Full house" & jokers_count == 3 ~ "6. Four of a kind",
+  type=="5. Full house" & jokers_count == 3 ~ "7. Five of a kind",
   type=="4. Three of a kind" & jokers_count == 1 ~ "6. Four of a kind",
   type=="4. Three of a kind" & jokers_count == 3 ~ "6. Four of a kind",
   type=="6. Four of a kind" & jokers_count == 1 ~ "7. Five of a kind",
@@ -167,8 +167,7 @@ joker |> mutate(new_type = case_when(
   mutate(winnings = row_number()*bid) -> joker
 
 joker |> group_by(type, jokers_count, new_type) |> count()
-joker |> filter(type=="4. Three of a kind" & jokers_count==3)
+joker |> filter(type=="2. Pair" & jokers_count==2)
 
 sum(joker$winnings)
-
-
+# 251195607 -- wrong?
