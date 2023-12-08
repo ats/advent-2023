@@ -5,7 +5,7 @@
 #
 # To play Camel Cards, you are given a list of hands and their corresponding bid
 # (your puzzle input). For example:
-  
+
 # 32T3K 765
 # T55J5 684
 # KK677 28
@@ -30,10 +30,11 @@ library(tidyr)
 library(dplyr)
 library(stringr)
 
+test_data <- read.csv(file="day_07/input.txt", sep=" ", header = FALSE)
 test_data <- tibble(
-  c("32T3K",  "T55J5", "KK677" , "KTJJT" , "QQQJA"),
-  c(765, 684, 28, 220, 483)
-) 
+  c("32T3K",  "T55J5", "KK677" , "KTJJT" , "QQQJA", "44KKJ"),
+  c(765, 684, 28, 220, 483, 47)
+)
 names(test_data) <- c("hand", "bid")
 
 # Every hand is exactly one type. From strongest to weakest, they are:
@@ -46,12 +47,12 @@ names(test_data) <- c("hand", "bid")
 #     label: 23332
 #  - Three of a kind, where three cards have the same label, and the remaining two cards are each i
 #     different from any other card in the hand: TTT98
-#  - Two pair, where two cards share one label, two other cards share a second label, and the 
+#  - Two pair, where two cards share one label, two other cards share a second label, and the
 #     remaining card has a third label: 23432
-#  - One pair, where two cards share one label, and the other three cards have a different label 
+#  - One pair, where two cards share one label, and the other three cards have a different label
 #     from the pair and each other: A23A4
 #  - High card, where all cards' labels are distinct: 23456
-# 
+#
 #
 # If two hands have the same type, a second ordering rule takes effect. Start by
 # comparing the first card in each hand. If these cards are different, the hand
@@ -63,8 +64,8 @@ names(test_data) <- c("hand", "bid")
 
 sort_order <- c("A", "K", "Q", "J", "T", "9", "8", "7", "6", "5", "4", "3", "2")
 
-atomic_hands <- str_extract_all(test_data$hand, "[2-9AKQJT*]", simplify = TRUE) |> 
-  as.data.frame() |> 
+atomic_hands <- str_extract_all(test_data$hand, "[2-9AKQJT*]", simplify = TRUE) |>
+  as.data.frame() |>
   mutate(hand = row_number()) |> pivot_longer(cols=V1:V5, names_to = "card") |>
   group_by(hand) |> count(value)
 
@@ -74,7 +75,7 @@ atomic_hands |> mutate(type = case_when(
   (2 %in% n & 3 %in% n) ~ "5. Full house",
   3 %in% n & 1 %in% n ~ "4. Three of a kind",
   n == 2 ~ "Pair"
-)) |> 
+)) |>
   mutate(type = case_when(
     "Three of a kind" %in% type & "Pair" %in% type ~ "Full house",
     "Three of a kind" %in% type ~ "Three of a kind",
@@ -83,7 +84,7 @@ atomic_hands |> mutate(type = case_when(
   )) |>
   group_by(hand) |> count(type) |>
   mutate(type = case_when(
-    type == "Pair" & n == 2 ~ "3. Two pair",
+    type == "2. Pair" & n == 2 ~ "3. Two pair",
     # is.na(type) ~ "High card",
     .default = type
   )) |> filter(!is.na(type)) -> ranked_hands
@@ -92,15 +93,32 @@ atomic_hands |> mutate(type = case_when(
 test_data <- test_data |> mutate(id = row_number()) |> left_join(ranked_hands, join_by(id==hand))
 test_data
 
-#hand_order <- c("Five of a kind", "Four of a kind", "Full house", "Three of a kind", 
+#hand_order <- c("Five of a kind", "Four of a kind", "Full house", "Three of a kind",
                 "Two pair", "Pair", "Single")
 test_data$type <- coalesce(test_data$type, "1. Single")
-#test_data$type <- levels("Five of a kind", "Four of a kind", "Full house", "Three of a kind", 
+#test_data$type <- levels("Five of a kind", "Four of a kind", "Full house", "Three of a kind",
  #                        "Two pair", "Pair", "Single")
-test_data$hand <- str_replace_all(test_data$hand, c("K" = "B", "Q" = "C", "J" = "D", "T" = "E", "9" = "F",
+test_data$sort_hand <- str_replace_all(test_data$hand, c("K" = "B", "Q" = "C", "J" = "D", "T" = "E",
+                                                         "9" = "F",
                                   "8" = "G", "7" = "H", "6" = "I", "5" = "J", "4" = "K",
                                   "3" = "L", "2" = "M"))
-test_data |> arrange(type, desc(hand)) |> mutate(winnings = row_number()*bid)
+test_data <- test_data |> arrange(type, desc(sort_hand)) |>
+  mutate(rank = row_number()) |>
+  mutate(winnings = row_number()*bid)
+
+head(test_data)
+sum(test_data$winnings)
+
+# 44KKJ
+# 47
+# 297
+# 2. Pair # why is this getting caught as a single pair instead of two pair?
+# 2
+# KKBBD
+# 279
+# 13113
+
+
 #
 # So, the first step is to put the hands in order of strength:
 #
@@ -113,4 +131,38 @@ test_data |> arrange(type, desc(hand)) |> mutate(winnings = row_number()*bid)
 # result of multiplying each hand's bid with its rank (765 * 1 + 220 * 2 + 28 *
 # 3 + 684 * 4 + 483 * 5). So the total winnings in this example are 6440.
 #
-# 
+
+
+# jokerfy
+# recode J to lowest value in sort order
+joker <- test_data
+joker$sort_hand <- str_replace_all(joker$hand, c("K" = "B", "Q" = "C", "J" = "N", "T" = "E",
+                                        "9" = "F",
+                                        "8" = "G", "7" = "H", "6" = "I", "5" = "J", "4" = "K",
+                                        "3" = "L", "2" = "M"))
+# count Js (Ns) in each string
+joker$jokers_count <- str_count(joker$sort_hand, "N")
+
+joker |> group_by(type, jokers_count) |> count()
+
+# [1] "1. Single"          "2. Pair"            "3. Two pair"        "4. Three of a kind"
+# [5] "5. Full house"      "6. Four of a kind"  "7. Five of a kind"
+# adjust hand types based on current type and joker count
+joker |> mutate(new_type = case_when(
+  type=="1. Single" & jokers_count == 1 ~ "2. Pair",
+  type=="1. Single" & jokers_count == 2 ~ "4. Three of a kind", # this shouldn't exist?
+  type=="2. Pair" & jokers_count == 1 ~ "4. Three of a kind",
+  type=="3. Two pair" & jokers_count == 1 ~ "5. Full house",
+  type=="5. Full house" & jokers_count == 2 ~ "7. Five of a kind",
+  type=="4. Three of a kind" & jokers_count == 1 ~ "6. Four of a kind",
+  type=="6. Four of a kind" & jokers_count == 1 ~ "7. Five of a kind",
+  .default = type
+)) |> arrange(new_type, desc(sort_hand)) |>
+  mutate(rank = row_number()) |>
+  mutate(winnings = row_number()*bid) -> joker
+
+joker |> group_by(type, jokers_count, new_type) |> count()
+
+sum(joker$winnings)
+
+
