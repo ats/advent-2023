@@ -152,17 +152,22 @@ joker |> mutate(new_type = case_when(
   type=="1. Single" & jokers_count == 1 ~ "2. Pair",
   type=="1. Single" & jokers_count == 2 ~ "4. Three of a kind", # this shouldn't exist?
   type=="2. Pair" & jokers_count == 1 ~ "4. Three of a kind",
+  type=="2. Pair" & jokers_count == 2 ~ "4. Three of a kind",
   type=="3. Two pair" & jokers_count == 1 ~ "5. Full house",
+  type=="3. Two pair" & jokers_count == 2 ~ "6. Four of a kind",
   type=="5. Full house" & jokers_count == 2 ~ "7. Five of a kind",
+  type=="5. Full house" & jokers_count == 3 ~ "6. Four of a kind",
   type=="4. Three of a kind" & jokers_count == 1 ~ "6. Four of a kind",
+  type=="4. Three of a kind" & jokers_count == 3 ~ "6. Four of a kind",
   type=="6. Four of a kind" & jokers_count == 1 ~ "7. Five of a kind",
+  type=="6. Four of a kind" & jokers_count == 4 ~ "7. Five of a kind",
   .default = type
 )) |> arrange(new_type, desc(sort_hand)) |>
   mutate(rank = row_number()) |>
   mutate(winnings = row_number()*bid) -> joker
 
 joker |> group_by(type, jokers_count, new_type) |> count()
-joker |> filter(type=="3. Two Pair" & jokers_count==1)
+joker |> filter(type=="4. Three of a kind" & jokers_count==3)
 
 sum(joker$winnings)
 
